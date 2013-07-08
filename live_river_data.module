@@ -18,6 +18,8 @@ function live_river_data_menu(){
 
 function live_river_data_import(){
   $directory = DRUPAL_ROOT . '/sites/all/modules/custom/live_river_data/data';
+  $time = date('YmdHi');
+  $processed_directory = processed_directory('processed/'.$time); 
   $dir = new DirectoryIterator($directory);
   $match = '/txt$/i';
   foreach ($dir as $fileinfo){
@@ -26,8 +28,8 @@ function live_river_data_import(){
         $filename = $directory .'/'.$fileinfo->getFilename();
         $json = cleanInputFile($filename);
         $sites = $json->return->traces;
-        go_get($sites, $filename);
-        echo 'Processed: '.$filename;
+        process_file($sites, $filename);
+        file_unmanaged_move($filename, $processed_directory, FILE_EXISTS_RENAME);
       }
     }
   }
@@ -48,7 +50,7 @@ function live_river_data_taxonomy_creator($term_name, $vocabulary_machine_name =
   }
   return key($term);
 }
-function go_get($sites, $filename){
+function process_file($sites, $filename){
   $starttime = microtime(true);
   foreach($sites as $site){
     $siteID = $site->site;

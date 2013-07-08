@@ -37,3 +37,22 @@ function cleanInputFile($filename){
   return $json;
 }
 
+// Function to create processed directory
+function processed_directory($directory = 'processed') {
+  //Attempt to use private file system
+  $path = variable_get('file_private_path');
+  //if not set then use public
+  if($path==NULL){
+    $path = 'public://';
+  } else {
+    $path = 'private://';
+  }
+  $path .= $directory;
+  $result = file_prepare_directory($path, FILE_CREATE_DIRECTORY);
+  if($result){
+    return $path;
+  } else {
+    return $result;
+  }
+}
+
