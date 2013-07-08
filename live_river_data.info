@@ -1,0 +1,5 @@
+name = Live River Data
+description = Import tool for Live River Data
+core = 7.x
+package = MDBA
+files[] = includes/helper.php

@@ -1,0 +1,114 @@
+<?php
+
+require_once DRUPAL_ROOT . '/sites/all/modules/custom/live_river_data/includes/helper.php'; 
+
+/**
+ * implement hook_menu
+ */
+function live_river_data_menu(){
+  $item['live_river/import'] = array(
+    'title' => t('Live River Data Import'),
+    'page callback' => 'live_river_data_import',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+
+  return $item;
+}
+
+function live_river_data_import(){
+  $starttime = microtime(true);
+  $filename = DRUPAL_ROOT . '/sites/all/modules/custom/live_river_data/data/48hours.txt';
+  $json = cleanInputFile($filename);
+
+  $sites = $json->return->traces;
+
+  foreach($sites as $site){
+    $siteID = $site->site;
+    $measurementType = $site->varto_details->short_name;
+    foreach($site->trace as $values){
+      $timestamp = strtotime($values->t);
+      $title = date('Y-m-d-H:i',$timestamp) . ' - ' . $siteID . ' - ' . $measurementType;
+
+      $query = new EntityFieldQuery();
+      $entities = $query->entityCondition('entity_type', 'node')
+        ->propertyCondition('type', 'measurement')
+        ->propertyCondition('title', $title)
+        ->propertyCondition('status', 1)
+        ->range(0,1)
+        ->execute();
+
+      if(empty($entities['node'])){
+
+        $value = $values->v;
+        $quality = $values->q;
+        $quality_code = $site->quality_codes->$quality;
+
+        $siteID_tax = array('tid' => live_river_data_taxonomy_creator($siteID, 'site_id'));
+        $measurementType_tax = array('tid' => live_river_data_taxonomy_creator($measurementType, 'measurement_type'));
+        $quality_tax = array('tid' => live_river_data_taxonomy_creator($quality_code, 'measurement_quality'));
+
+        $node = new stdClass();  // Create new node object
+        $node->type = 'measurement'; // Declare type
+        node_object_prepare($node); // Set defaults
+
+        $node->title = $title; // Set node title
+        $node->language = LANGUAGE_NONE; // Set node language
+
+        $node->uid = 1; // Set user to Admin
+
+        $node->field_site_id[$node->language][0] = $siteID_tax;
+        $node->field_measurement_type[$node->language][0] = $measurementType_tax;
+        $node->field_value[$node->language][0]['value'] = $value;
+        $node->field_measurement_quality[$node->language][0] = $quality_tax;
+        $node->field_timestamp[$node->language][0]['value'] = $timestamp;
+
+        if($node == node_submit($node)) {
+          node_save($node);
+        }
+      } else {
+        $nid_array = array_keys($entities['node']);
+
+        $value = $values->v;
+        $quality = $values->q;
+        $quality_code = $site->quality_codes->$quality;
+
+        $siteID_tax = array('tid' => live_river_data_taxonomy_creator($siteID, 'site_id'));
+        $measurementType_tax = array('tid' => live_river_data_taxonomy_creator($measurementType, 'measurement_type'));
+        $quality_tax = array('tid' => live_river_data_taxonomy_creator($quality_code, 'measurement_quality'));
+
+        $node = node_load($nid_array[0]);
+        $node->language = LANGUAGE_NONE; // Set node language
+        if($node->field_value[$node->language][0]['value'] != $value){
+          $node->field_site_id[$node->language][0] = $siteID_tax;
+          $node->field_measurement_type[$node->language][0] = $measurementType_tax;
+          $node->field_value[$node->language][0]['value'] = $value;
+          $node->field_measurement_quality[$node->language][0] = $quality_tax;
+          $node->field_timestamp[$node->language][0]['value'] = $timestamp;
+          if($node == node_submit($node)) {
+            node_save($node);
+          }
+        }
+      }
+    }
+  }
+  $time_taken = microtime(true) - $starttime;
+  $string = 'Proccessed: '.$filename . ' in ' . $time_taken . ' seconds';
+  watchdog('Live River Data', t($string), array(), WATCHDOG_NOTICE);
+}
+
+function live_river_data_taxonomy_creator($term_name, $vocabulary_machine_name = FALSE){
+  //Grab term is it exists
+  $term = taxonomy_get_term_by_name($term_name);
+
+  // If it does not exist, make it
+  if($term == array()){
+    $vocabulary = taxonomy_vocabulary_machine_name_load($vocabulary_machine_name);
+    $taxonomy = new stdClass();
+    $taxonomy->name = $term_name;
+    $taxonomy->vid = $vocabulary->vid;
+    taxonomy_term_save($taxonomy);
+    $term = taxonomy_get_term_by_name($term_name);
+  }
+  return key($term);
+}
