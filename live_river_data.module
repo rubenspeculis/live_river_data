@@ -17,12 +17,39 @@ function live_river_data_menu(){
 }
 
 function live_river_data_import(){
+  $directory = DRUPAL_ROOT . '/sites/all/modules/custom/live_river_data/data';
+  $dir = new DirectoryIterator($directory);
+  $match = '/txt$/i';
+  foreach ($dir as $fileinfo){
+    if(!$fileinfo->isDot()){
+      if(preg_match($match, $fileinfo->getFilename())){
+        $filename = $directory .'/'.$fileinfo->getFilename();
+        $json = cleanInputFile($filename);
+        $sites = $json->return->traces;
+        go_get($sites, $filename);
+        echo 'Processed: '.$filename;
+      }
+    }
+  }
+}
+
+function live_river_data_taxonomy_creator($term_name, $vocabulary_machine_name = FALSE){
+  //Grab term is it exists
+  $term = taxonomy_get_term_by_name($term_name);
+
+  // If it does not exist, make it
+  if($term == array()){
+    $vocabulary = taxonomy_vocabulary_machine_name_load($vocabulary_machine_name);
+    $taxonomy = new stdClass();
+    $taxonomy->name = $term_name;
+    $taxonomy->vid = $vocabulary->vid;
+    taxonomy_term_save($taxonomy);
+    $term = taxonomy_get_term_by_name($term_name);
+  }
+  return key($term);
+}
+function go_get($sites, $filename){
   $starttime = microtime(true);
-  $filename = DRUPAL_ROOT . '/sites/all/modules/custom/live_river_data/data/48hours.txt';
-  $json = cleanInputFile($filename);
-
-  $sites = $json->return->traces;
-
   foreach($sites as $site){
     $siteID = $site->site;
     $measurementType = $site->varto_details->short_name;
@@ -92,23 +119,8 @@ function live_river_data_import(){
       }
     }
   }
-  $time_taken = microtime(true) - $starttime;
-  $string = 'Proccessed: '.$filename . ' in ' . $time_taken . ' seconds';
-  watchdog('Live River Data', t($string), array(), WATCHDOG_NOTICE);
+    $time_taken = microtime(true) - $starttime;
+    $string = 'Proccessed: '.$filename . ' in ' . $time_taken . ' seconds';
+    watchdog('Live River Data', t($string), array(), WATCHDOG_NOTICE);
 }
 
-function live_river_data_taxonomy_creator($term_name, $vocabulary_machine_name = FALSE){
-  //Grab term is it exists
-  $term = taxonomy_get_term_by_name($term_name);
-
-  // If it does not exist, make it
-  if($term == array()){
-    $vocabulary = taxonomy_vocabulary_machine_name_load($vocabulary_machine_name);
-    $taxonomy = new stdClass();
-    $taxonomy->name = $term_name;
-    $taxonomy->vid = $vocabulary->vid;
-    taxonomy_term_save($taxonomy);
-    $term = taxonomy_get_term_by_name($term_name);
-  }
-  return key($term);
-}
