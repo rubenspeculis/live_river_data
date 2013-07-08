@@ -33,6 +33,7 @@ function live_river_data_import(){
       }
     }
   }
+  drupal_goto('/admin/reports/blog');
 }
 
 function live_river_data_taxonomy_creator($term_name, $vocabulary_machine_name = FALSE){

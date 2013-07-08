@@ -18,7 +18,8 @@ function live_river_data_menu(){
 
 function live_river_data_import(){
   $directory = DRUPAL_ROOT . '/sites/all/modules/custom/live_river_data/data';
-  $processed_directory = processed_directory(); 
+  $time = date('YmdHi');
+  $processed_directory = processed_directory('processed/'.$time); 
   $dir = new DirectoryIterator($directory);
   $match = '/txt$/i';
   foreach ($dir as $fileinfo){
