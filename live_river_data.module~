@@ -25,7 +25,7 @@ function live_river_data_import(){
   foreach ($dir as $fileinfo){
     if(!$fileinfo->isDot()){
       if(preg_match($match, $fileinfo->getFilename())){
-        $filename = $directory .'/'.$fileinfo->getFilename();
+        $filename = $fileinfo->getPathname();
         $json = cleanInputFile($filename);
         $sites = $json->return->traces;
         process_file($sites, $filename);
@@ -63,7 +63,8 @@ function process_file($sites, $filename){
     $siteID = $site->site;
     $measurementType = $site->varto_details->short_name;
     foreach($site->trace as $values){
-      $timestamp = strtotime($values->t);
+      $date = $values->t;
+      $timestamp = strtotime($date);
       $title = date('Y-m-d-H:i',$timestamp) . ' - ' . $siteID . ' - ' . $measurementType;
       $value = $values->v;
       $quality = $values->q;
@@ -108,7 +109,6 @@ function process_file($sites, $filename){
       } else {
         $nid_array = array_keys($entities['node']);
         $node = node_load($nid_array[0]);
-        $node->language = LANGUAGE_NONE; // Set node language
         if($node->field_value[$node->language][0]['value'] != $value){
           $node->field_site_id[$node->language][0] = $siteID_tax;
           $node->field_measurement_type[$node->language][0] = $measurementType_tax;
@@ -122,8 +122,29 @@ function process_file($sites, $filename){
       }
     }
   }
+  live_river_data_delete_old($date, $measurementType_tax);
   $time_taken = microtime(true) - $starttime;
-  $string = 'Proccessed: '.$filename . ' in ' . $time_taken . ' seconds';
+  $string = 'Proccessed: Measurement type -'.$measurementType.' ('.$filename . ') in ' . $time_taken . ' seconds';
   watchdog('Live River Data', t($string), array(), WATCHDOG_NOTICE);
 }
+// function to delete older records
+function live_river_data_delete_old($dateString, $measurementTid) {
+  $query = new EntityFieldQuery();
+  $timestamp = strtotime($dateString) - 48*3600;
 
+  $query->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', 'measurement')
+    ->propertyCondition('status', 1)
+    ->fieldCondition('field_timestamp', 'value', $timestamp, '<')
+    ->fieldCondition('field_measurement_type', 'tid', $measurementTid['tid']);
+
+  $result = $query->execute();
+
+  if(isset($result['node'])){
+    $nodes_to_delete_nids = array_keys($result['node']);
+    node_delete_multiple($nodes_to_delete_nids);
+    $number_of_deleted_nodes = count($nodes_to_delete_nids);
+    $string = $number_of_deleted_nodes . ' have been deleted due to becoming old.';
+    watchdog('Live River Data', t($string), array(), WATCHDOG_NOTICE);
+  }
+}
