@@ -17,7 +17,7 @@ function live_river_data_menu(){
 }
 
 function live_river_data_import(){
-  $directory = DRUPAL_ROOT . '/sites/all/modules/custom/live_river_data/data';
+  $directory = DRUPAL_ROOT . '/sites/all/modules/custom/live_river_data/data/48';
   $time = date('YmdHi');
   $processed_directory = processed_directory('processed/'.$time); 
   $dir = new DirectoryIterator($directory);
@@ -27,9 +27,13 @@ function live_river_data_import(){
       if(preg_match($match, $fileinfo->getFilename())){
         $filename = $fileinfo->getPathname();
         $json = cleanInputFile($filename);
-        $sites = $json->return->traces;
-        process_file($sites, $filename);
-        file_unmanaged_move($filename, $processed_directory, FILE_EXISTS_RENAME);
+        if($json != FALSE){
+          $sites = $json->return->traces;
+          _process_file($sites, $filename);
+          if(file_exists($filename)){
+            file_unmanaged_move($filename, $processed_directory, FILE_EXISTS_RENAME);
+          }
+        }
       }
     }
   }
@@ -52,7 +56,7 @@ function live_river_data_taxonomy_creator($term_name, $vocabulary_machine_name =
   return key($term);
 }
 
-function process_file($sites, $filename){
+function _process_file($sites, $filename){
   $starttime = microtime(true);
   $one_to_four = '/100to400.txt/i';
   $one_to_two  = '/100to200.txt/i';
@@ -122,14 +126,14 @@ function process_file($sites, $filename){
       }
     }
   }
-  live_river_data_delete_old($date, $measurementType_tax);
+  _live_river_data_delete_old($date, $measurementType_tax);
   $time_taken = microtime(true) - $starttime;
   $string = 'Proccessed: Measurement type -'.$measurementType.' ('.$filename . ') in ' . $time_taken . ' seconds';
   watchdog('Live River Data', t($string), array(), WATCHDOG_NOTICE);
 }
 
 // function to delete older records
-function live_river_data_delete_old($dateString, $measurementTid) {
+function _live_river_data_delete_old($dateString, $measurementTid) {
   $query = new EntityFieldQuery();
   $timestamp = strtotime($dateString) - 48*3600;
 
@@ -145,7 +149,7 @@ function live_river_data_delete_old($dateString, $measurementTid) {
     $nodes_to_delete_nids = array_keys($result['node']);
     node_delete_multiple($nodes_to_delete_nids);
     $number_of_deleted_nodes = count($nodes_to_delete_nids);
-    $string = $number_of_deleted_nodes . ' have been deleted due to becoming old.';
+    $string = $number_of_deleted_nodes . ' nodes have been deleted due to becoming old.';
     watchdog('Live River Data', t($string), array(), WATCHDOG_NOTICE);
   }
 }

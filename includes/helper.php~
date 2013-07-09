@@ -19,7 +19,7 @@ function cleanInputFile($filename){
   $file = file_Get_contents($filename);
 
   // Strip header information
-   $needle = 'JSON string:';
+  $needle = 'JSON string:';
   $cleaning = strstr($file, $needle);
   $first_instance = '{';
   $cleaning = strstr($cleaning, $first_instance);
