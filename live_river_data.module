@@ -17,7 +17,7 @@ function live_river_data_menu(){
 }
 
 function live_river_data_import(){
-  $directory = DRUPAL_ROOT . '/sites/all/modules/custom/live_river_data/data';
+  $directory = DRUPAL_ROOT . '/sites/all/modules/custom/live_river_data/data/96';
   $time = date('YmdHi');
   $processed_directory = processed_directory('processed/'.$time); 
   $dir = new DirectoryIterator($directory);
@@ -33,7 +33,7 @@ function live_river_data_import(){
       }
     }
   }
-  drupal_goto('/admin/reports/blog');
+  drupal_goto('admin/reports/dblog');
 }
 
 function live_river_data_taxonomy_creator($term_name, $vocabulary_machine_name = FALSE){
