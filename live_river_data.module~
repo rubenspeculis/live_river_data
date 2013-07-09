@@ -33,6 +33,7 @@ function live_river_data_import(){
       }
     }
   }
+  drupal_goto('admin/reports/dblog');
 }
 
 function live_river_data_taxonomy_creator($term_name, $vocabulary_machine_name = FALSE){
@@ -52,12 +53,24 @@ function live_river_data_taxonomy_creator($term_name, $vocabulary_machine_name =
 }
 function process_file($sites, $filename){
   $starttime = microtime(true);
+  $one_to_four = '/100to400.txt/i';
+  $one_to_two  = '/100to200.txt/i';
+  if(preg_match($one_to_four, $filename)){ $onetofour = TRUE; } else { $onetofour = FALSE; }
+  if(preg_match($one_to_two,  $filename)){ $onetotwo  = TRUE; } else { $onetotwo  = FALSE; }
+
   foreach($sites as $site){
     $siteID = $site->site;
     $measurementType = $site->varto_details->short_name;
     foreach($site->trace as $values){
       $timestamp = strtotime($values->t);
       $title = date('Y-m-d-H:i',$timestamp) . ' - ' . $siteID . ' - ' . $measurementType;
+
+      if($onetofour) {
+        $title .= ' - Rating Tables';
+      }
+      if($onetotwo) {
+        $title .= ' - Capacity Tables';
+      }
 
       $query = new EntityFieldQuery();
       $entities = $query->entityCondition('entity_type', 'node')
@@ -75,6 +88,14 @@ function process_file($sites, $filename){
 
         $siteID_tax = array('tid' => live_river_data_taxonomy_creator($siteID, 'site_id'));
         $measurementType_tax = array('tid' => live_river_data_taxonomy_creator($measurementType, 'measurement_type'));
+
+        if($onetofour) {
+          $measurementType_tax = array('tid' => live_river_data_taxonomy_creator('Flow calculated through rating tables', 'measurement_type'));
+        }
+        if($onetotwo) {
+          $measurementType_tax = array('tid' => live_river_data_taxonomy_creator('Volume calculated through capacity tables', 'measurement_type'));
+        }
+
         $quality_tax = array('tid' => live_river_data_taxonomy_creator($quality_code, 'measurement_quality'));
 
         $node = new stdClass();  // Create new node object
@@ -104,6 +125,14 @@ function process_file($sites, $filename){
 
         $siteID_tax = array('tid' => live_river_data_taxonomy_creator($siteID, 'site_id'));
         $measurementType_tax = array('tid' => live_river_data_taxonomy_creator($measurementType, 'measurement_type'));
+
+        if($onetofour) {
+          $measurementType_tax = array('tid' => live_river_data_taxonomy_creator('Flow calculated through rating tables', 'measurement_type'));
+        }
+        if($onetotwo) {
+          $measurementType_tax = array('tid' => live_river_data_taxonomy_creator('Volume calculated through capacity tables', 'measurement_type'));
+        }
+
         $quality_tax = array('tid' => live_river_data_taxonomy_creator($quality_code, 'measurement_quality'));
 
         $node = node_load($nid_array[0]);
