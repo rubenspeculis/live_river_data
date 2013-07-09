@@ -1,0 +1,40 @@
+<?php
+
+
+// Function to create data directory
+function live_river_data_directory($directory = 'live_river_data') {
+  //Attempt to use private file system
+  $path = variable_get('file_private_path');
+  //if not set then use public
+  if($path==NULL){
+    $path = 'public://';
+  } else {
+    $path = 'private://';
+  }
+  $path .= $directory;
+  $result = file_prepare_directory($path, FILE_CREATE_DIRECTORY);
+  if($result){
+    return $path;
+  } else {
+    return $result;
+  }
+}
+
+/**
+ * Implements hook_install().
+ *
+ * Set variables for Live River Data Module
+ */
+function live_river_data_install() {
+  $path = live_river_data_directory();
+  variable_set('live_river_data_directory', $path);
+}
+
+/**
+ *  Implements hook_uninstall().
+ *
+ * Unset variables for Live River Data Module
+ */
+function live_river_data_uninstall() {
+  variable_del('live_river_data_directory');
+}

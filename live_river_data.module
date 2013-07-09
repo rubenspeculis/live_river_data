@@ -6,18 +6,54 @@ require_once DRUPAL_ROOT . '/sites/all/modules/custom/live_river_data/includes/h
  * implement hook_menu
  */
 function live_river_data_menu(){
-  $item['live_river/import'] = array(
+  $items = array();
+  $items['live_river/import'] = array(
     'title' => t('Live River Data Import'),
     'page callback' => 'live_river_data_import',
-    'access arguments' => array('access content'),
+    'access arguments' => array('access administration pages'),
     'type' => MENU_CALLBACK,
   );
-
-  return $item;
+  $items['admin/config/content/live_river'] = array(
+    'title' => 'Live River Data',
+    'description' => 'Configuration for the importing of Live River Data',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('live_river_data_form'),
+    'access arguments' => array('access administration pages'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  return $items;
 }
 
+/**
+ * Page callback: Current Live River Data import settings
+ *
+ * @See live_river_data_menu()
+ */
+function live_river_data_form($form, &$form_state){
+  $form['general_settings'] = array(
+    '#type' => 'fieldset',
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+    '#title' => t('General Seetings for Live River Data Importing'),
+    '#description' => t('The Live River Data module enables the processing of Hydrasta files uploaded to a specific directory. Settings are here.'),
+  );
+  $form['general_settings']['live_river_data_directory'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Scan directory'),
+    '#default_value' => variable_get('live_river_data_directory', ''),
+    '#description' => t('Enter the directory where Live River Data JSON files will be uploaded to for processing.'),
+    '#required' => TRUE,
+  );
+  return system_settings_form($form);
+}
+
+/**
+ * Page callback: Run Live River Data Import
+ *
+ * @See live_river_data_menu()
+ */
 function live_river_data_import(){
-  $directory = DRUPAL_ROOT . '/sites/all/modules/custom/live_river_data/data/48';
+  $directory = drupal_realpath(variable_get('live_river_data_directory', ''));
   $time = date('YmdHi');
   $processed_directory = processed_directory('processed/'.$time); 
   $dir = new DirectoryIterator($directory);
