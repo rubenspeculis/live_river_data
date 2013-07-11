@@ -76,6 +76,10 @@ function live_river_data_import(){
   drupal_goto('admin/reports/dblog');
 }
 
+/**
+ * Function to create taxonomy term and vocabulary dynamically.
+ * Returns term ID
+ */
 function live_river_data_taxonomy_creator($term_name, $vocabulary_machine_name = FALSE){
   //Grab term is it exists
   $term = taxonomy_get_term_by_name($term_name);
@@ -92,6 +96,10 @@ function live_river_data_taxonomy_creator($term_name, $vocabulary_machine_name =
   return key($term);
 }
 
+/**
+ * Process JSON and File
+ *
+ */
 function _process_file($sites, $filename){
   $starttime = microtime(true);
   $one_to_four = '/100to400.txt/i';
