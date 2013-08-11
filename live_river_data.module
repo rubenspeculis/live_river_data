@@ -44,6 +44,13 @@ function live_river_data_form($form, &$form_state){
     '#description' => t('Enter the directory where Live River Data JSON files will be uploaded to for processing.'),
     '#required' => TRUE,
   );
+  $form['general_settings']['live_river_data_days_to_retain'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Number of Days to retain data for'),
+    '#default_value' => variable_get('live_river_data_days_to_retain', '30'),
+    '#description' => t('Enter the number of days that data is to be retained for in the Drupal system'),
+    '#required' => TRUE,
+  );
   return system_settings_form($form);
 }
 
@@ -179,7 +186,8 @@ function _process_file($sites, $filename){
 // function to delete older records
 function _live_river_data_delete_old($dateString, $measurementTid) {
   $query = new EntityFieldQuery();
-  $timestamp = strtotime($dateString) - 48*3600;
+  $days_to_retain = variable_get('live_river_data_days_to_retain', 30);;
+  $timestamp = strtotime($dateString) - ((int)$days_to_retain * 24 * 3600);
 
   $query->entityCondition('entity_type', 'node')
     ->propertyCondition('type', 'measurement')
