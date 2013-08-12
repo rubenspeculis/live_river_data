@@ -139,6 +139,8 @@ function live_river_data_processJson($item){
   $sites = $item[0]->return->traces;
   $filename = $item[1];
   _process_file($sites, $filename);
+  $message = 'Cron Processed the following file: '. $filename;
+  watchdog('Live River Data', t($message), array(), WATCHDOG_NOTICE);
   return TRUE;
 }
 
