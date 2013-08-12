@@ -226,7 +226,7 @@ function _process_file($sites, $filename){
       } else {
         $nid_array = array_keys($entities['node']);
         $node = node_load($nid_array[0]);
-        if($node->field_value[$node->language][0]['value'] != $value){
+        if($node->field_value[$node->language][0]['value'] != $value || $node->field_measurement_quality[$node->language][0] != $quality_tax){
           $node->field_site_id[$node->language][0] = $siteID_tax;
           $node->field_measurement_type[$node->language][0] = $measurementType_tax;
           $node->field_value[$node->language][0]['value'] = $value;
@@ -239,7 +239,9 @@ function _process_file($sites, $filename){
       }
     }
   }
-  _live_river_data_delete_old($date, $measurementType_tax);
+  if(isset($date) && isset($measurementType_tax)){
+    _live_river_data_delete_old($date, $measurementType_tax);
+  }
   $time_taken = microtime(true) - $starttime;
   $string = 'Proccessed: Measurement type -'.$measurementType.' ('.$filename . ') in ' . $time_taken . ' seconds';
   watchdog('Live River Data', t($string), array(), WATCHDOG_NOTICE);
