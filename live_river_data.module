@@ -86,14 +86,13 @@ function live_river_data_import(){
 /**
  * Implement hook_cron().
  */
-
 function live_river_data_cron() {
   $queue = DrupalQueue::get('liveRiverDataFile');
   foreach(filesQueueGenerator() as $file){
     $queue->createItem($file);
   }
 }
- 
+
 /**
  * Implement hook_cron_queue_info().
  */
@@ -135,6 +134,9 @@ function filesQueueGenerator(){
   return $files;
 }
 
+/**
+ * Worker threads.
+ */
 function live_river_data_processJson($item){
   $sites = $item[0]->return->traces;
   $filename = $item[1];
