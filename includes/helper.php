@@ -62,3 +62,25 @@ function processed_directory($directory = 'processed') {
     return $result;
   }
 }
+
+function loadSiteMeasurementByType($siteTax, $measurementTax) {
+  
+  $sql_query = 'SELECT  n.nid AS nid,
+    n.title AS title,
+    t.field_measurement_type_tid AS type,
+    s.field_site_id_tid AS site
+    FROM node AS n
+    INNER JOIN field_data_field_measurement_type AS t ON n.nid = t.entity_id
+    INNER JOIN field_data_field_site_id AS s ON n.nid = s.entity_id
+    WHERE s.field_site_id_tid = :siteId
+    AND t.field_measurement_type_tid = :measurementId';
+
+  $result = db_query($sql_query, array('siteId' => $siteTax, 'measurementId' => $measurementTax));
+
+  $nodes = array();
+
+  foreach($result as $record) {
+    $nodes[$record->title] = $record->nid;
+  }
+  return $nodes;
+}

@@ -179,13 +179,9 @@ function _process_file($sites, $filename){
 
   $siteID_check = '';
   $measurementType_check = '';
+  $quality_check = '';
 
   foreach($sites as $site){
-    $siteID = $site->site;
-    if($siteID != $siteID_check) {
-      $siteID_check = $siteID;
-      $siteID_tax = array('tid' => live_river_data_taxonomy_creator($siteID, 'site_id'));
-    }
 
     $measurementType = $site->varto_details->short_name;
     if($measurementType != $measurementType_check) {
@@ -199,6 +195,14 @@ function _process_file($sites, $filename){
         $measurementType_tax = array('tid' => live_river_data_taxonomy_creator($measurementType, 'measurement_type'));
       }
     }
+
+    $siteID = $site->site;
+    if($siteID != $siteID_check) {
+      $siteID_check = $siteID;
+      $siteID_tax = array('tid' => live_river_data_taxonomy_creator($siteID, 'site_id'));
+      $existing_nodes = loadSiteMeasurementByType($siteID_tax['tid'], $measurementType_tax['tid']);
+    }
+
     foreach($site->trace as $values){
       if($values->q < 150){
         $date = $values->t;
@@ -215,24 +219,35 @@ function _process_file($sites, $filename){
 
         // Quality TAX
         $quality = $values->q;
-        $quality_codes = (array)$site->quality_codes;
-        $new_qcodes = array();
+        if($quality != $quality_check) {
+          $quality_check = $quality;
 
-        foreach($quality_codes as $key => $value){
-          $new_qcodes["q".$key] = $value;
+          $quality_codes = (array)$site->quality_codes;
+          $new_qcodes = array();
+
+          foreach($quality_codes as $key => $value){
+            $new_qcodes["q".$key] = $value;
+          }
+          $quality_code = $new_qcodes['q'.$quality];
+          $quality_tax = array('tid' => live_river_data_taxonomy_creator($quality_code, 'measurement_quality'));
         }
-        $quality_code = $new_qcodes['q'.$quality];
-        $quality_tax = array('tid' => live_river_data_taxonomy_creator($quality_code, 'measurement_quality'));
 
-        $query = new EntityFieldQuery();
-        $entities = $query->entityCondition('entity_type', 'node')
-          ->propertyCondition('type', 'measurement')
-          ->propertyCondition('title', $title)
-          ->propertyCondition('status', 1)
-          ->range(0,1)
-          ->execute();
-
-        if(empty($entities['node'])){
+        if(!empty($existing_nodes)) {
+          if(isset($existing_nodes[$title])) {
+            $nid = $existing_nodes[$title];
+            unset($existing_node[$title]);
+            $node = node_load($nid);
+            if($node->field_value[$node->language][0]['value'] != $value || $node->field_measurement_quality[$node->language][0] != $quality_tax){
+              $node->language = LANGUAGE_NONE; // Set node language
+              $node->field_value[$node->language][0]['value'] = $field_value;
+              $node->field_measurement_quality[$node->language][0] = $quality_tax;
+              $node->field_timestamp[$node->language][0]['value'] = $timestamp;
+              if($node == node_submit($node)) {
+                node_save($node);
+              }
+            }
+          }
+        } else {
           $node = new stdClass();  // Create new node object
           $node->type = 'measurement'; // Declare type
           node_object_prepare($node); // Set defaults
@@ -246,20 +261,6 @@ function _process_file($sites, $filename){
           $node->field_timestamp[$node->language][0]['value'] = $timestamp;
           if($node == node_submit($node)) {
             node_save($node);
-          }
-        } else {
-          $nid_array = array_keys($entities['node']);
-          $node = node_load($nid_array[0]);
-          if($node->field_value[$node->language][0]['value'] != $value || $node->field_measurement_quality[$node->language][0] != $quality_tax){
-            $node->language = LANGUAGE_NONE; // Set node language
-            $node->field_site_id[$node->language][0] = $siteID_tax;
-            $node->field_measurement_type[$node->language][0] = $measurementType_tax;
-            $node->field_value[$node->language][0]['value'] = $field_value;
-            $node->field_measurement_quality[$node->language][0] = $quality_tax;
-            $node->field_timestamp[$node->language][0]['value'] = $timestamp;
-            if($node == node_submit($node)) {
-              node_save($node);
-            }
           }
         }
       }
