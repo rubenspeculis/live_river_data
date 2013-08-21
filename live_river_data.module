@@ -177,14 +177,25 @@ function _process_file($sites, $filename){
   if(preg_match($one_to_four, $filename)){ $onetofour = TRUE; } else { $onetofour = FALSE; }
   if(preg_match($one_to_two,  $filename)){ $onetotwo  = TRUE; } else { $onetotwo  = FALSE; }
 
+  $siteID_check = '';
+  $measurementType_check = '';
+
   foreach($sites as $site){
     $siteID = $site->site;
     $measurementType = $site->varto_details->short_name;
+
     foreach($site->trace as $values){
+      if($siteID != $siteID_check) {
+        $siteID_check = $siteID;
+        $siteID_tax = array('tid' => live_river_data_taxonomy_creator($siteID, 'site_id'));
+      }
+
       $date = $values->t;
       $timestamp = strtotime($date);
       $title = date('Y-m-d-H:i',$timestamp) . ' - ' . $siteID . ' - ' . $measurementType;
-      $value = $values->v;
+
+      $field_value = $values->v;
+      // Quality TAX
       $quality = $values->q;
       $quality_codes = (array)$site->quality_codes;
       $new_qcodes = array();
@@ -192,8 +203,9 @@ function _process_file($sites, $filename){
         $new_qcodes["q".$key] = $value;
       }
       $quality_code = $new_qcodes['q'.$quality];
-      $siteID_tax = array('tid' => live_river_data_taxonomy_creator($siteID, 'site_id'));
+      $quality_tax = array('tid' => live_river_data_taxonomy_creator($quality_code, 'measurement_quality'));
 
+      // Measurement Tax
       if($onetofour) {
         $measurementType_tax = array('tid' => live_river_data_taxonomy_creator('Flow calculated through rating tables', 'measurement_type'));
         $title .= ' - Rating Tables';
@@ -204,7 +216,6 @@ function _process_file($sites, $filename){
         $measurementType_tax = array('tid' => live_river_data_taxonomy_creator($measurementType, 'measurement_type'));
       }
 
-      $quality_tax = array('tid' => live_river_data_taxonomy_creator($quality_code, 'measurement_quality'));
 
       $query = new EntityFieldQuery();
       $entities = $query->entityCondition('entity_type', 'node')
@@ -223,7 +234,7 @@ function _process_file($sites, $filename){
         $node->uid = 1; // Set user to Admin
         $node->field_site_id[$node->language][0] = $siteID_tax;
         $node->field_measurement_type[$node->language][0] = $measurementType_tax;
-        $node->field_value[$node->language][0]['value'] = $value;
+        $node->field_value[$node->language][0]['value'] = $field_value;
         $node->field_measurement_quality[$node->language][0] = $quality_tax;
         $node->field_timestamp[$node->language][0]['value'] = $timestamp;
         if($node == node_submit($node)) {
@@ -233,9 +244,10 @@ function _process_file($sites, $filename){
         $nid_array = array_keys($entities['node']);
         $node = node_load($nid_array[0]);
         if($node->field_value[$node->language][0]['value'] != $value || $node->field_measurement_quality[$node->language][0] != $quality_tax){
+          $node->language = LANGUAGE_NONE; // Set node language
           $node->field_site_id[$node->language][0] = $siteID_tax;
           $node->field_measurement_type[$node->language][0] = $measurementType_tax;
-          $node->field_value[$node->language][0]['value'] = $value;
+          $node->field_value[$node->language][0]['value'] = $field_value;
           $node->field_measurement_quality[$node->language][0] = $quality_tax;
           $node->field_timestamp[$node->language][0]['value'] = $timestamp;
           if($node == node_submit($node)) {
