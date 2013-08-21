@@ -187,7 +187,11 @@ function _process_file($sites, $filename){
       $value = $values->v;
       $quality = $values->q;
       $quality_codes = (array)$site->quality_codes;
-      $quality_code = $quality_codes[$quality];
+      $new_qcodes = array();
+      foreach($quality_codes as $key => $value){
+        $new_qcodes["q".$key] = $value;
+      }
+      $quality_code = $new_qcodes['q'.$quality];
       $siteID_tax = array('tid' => live_river_data_taxonomy_creator($siteID, 'site_id'));
 
       if($onetofour) {
