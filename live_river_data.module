@@ -113,10 +113,11 @@ function filesQueueGenerator(){
   $directory = drupal_realpath(variable_get('live_river_data_directory', ''));
   $time = date('YmdHi');
   $dir = new DirectoryIterator($directory);
-  $match = '/txt$/i';
+  $match = "/txt$/i";
   $files = array();
+
   foreach ($dir as $fileinfo){
-    if(!$fileinfo->isDot()){
+    if(!$fileinfo->isDot() && !is_dir($fileinfo->getFilename())){
       if(preg_match($match, $fileinfo->getFilename())){
         $filename = $fileinfo->getPathname();
         $json = cleanInputFile($filename);
@@ -172,8 +173,8 @@ function live_river_data_taxonomy_creator($term_name, $vocabulary_machine_name =
  */
 function _process_file($sites, $filename){
   $starttime = microtime(true);
-  $one_to_four = '/100to400.txt/i';
-  $one_to_two  = '/100to200.txt/i';
+  $one_to_four = '/100to400/i';
+  $one_to_two  = '/100to200/i';
   if(preg_match($one_to_four, $filename)){ $onetofour = TRUE; } else { $onetofour = FALSE; }
   if(preg_match($one_to_two,  $filename)){ $onetotwo  = TRUE; } else { $onetotwo  = FALSE; }
 
@@ -182,8 +183,8 @@ function _process_file($sites, $filename){
   $quality_check = '';
 
   foreach($sites as $site){
-
     $measurementType = $site->varto_details->short_name;
+
     if($measurementType != $measurementType_check) {
       $measurementType_check = $measurementType;
       // Measurement Tax
@@ -195,7 +196,6 @@ function _process_file($sites, $filename){
         $measurementType_tax = array('tid' => live_river_data_taxonomy_creator($measurementType, 'measurement_type'));
       }
     }
-
     $siteID = $site->site;
     if($siteID != $siteID_check) {
       $siteID_check = $siteID;
@@ -232,19 +232,17 @@ function _process_file($sites, $filename){
           $quality_tax = array('tid' => live_river_data_taxonomy_creator($quality_code, 'measurement_quality'));
         }
 
-        if(!empty($existing_nodes)) {
-          if(isset($existing_nodes[$title])) {
-            $nid = $existing_nodes[$title];
-            unset($existing_node[$title]);
-            $node = node_load($nid);
-            if($node->field_value[$node->language][0]['value'] != $value || $node->field_measurement_quality[$node->language][0] != $quality_tax){
-              $node->language = LANGUAGE_NONE; // Set node language
-              $node->field_value[$node->language][0]['value'] = $field_value;
-              $node->field_measurement_quality[$node->language][0] = $quality_tax;
-              $node->field_timestamp[$node->language][0]['value'] = $timestamp;
-              if($node == node_submit($node)) {
-                node_save($node);
-              }
+        if(!empty($existing_nodes) && isset($existing_nodes[$title])) {
+          $nid = $existing_nodes[$title];
+          unset($existing_nodes[$title]);
+          $node = node_load($nid);
+          if($node->field_value[$node->language][0]['value'] != $value || $node->field_measurement_quality[$node->language][0] != $quality_tax){
+            $node->language = LANGUAGE_NONE; // Set node language
+            $node->field_value[$node->language][0]['value'] = $field_value;
+            $node->field_measurement_quality[$node->language][0] = $quality_tax;
+            $node->field_timestamp[$node->language][0]['value'] = $timestamp;
+            if($node == node_submit($node)) {
+              node_save($node);
             }
           }
         } else {
