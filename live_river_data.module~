@@ -238,7 +238,8 @@ function _process_file($sites, $filename){
           $nid = $existing_nodes[$title];
           unset($existing_nodes[$title]);
           $node = node_load($nid);
-          if($node->field_value[$node->language][0]['value'] != $field_value || $node->field_measurement_quality[$node->language][0]['tid'] != $quality_tax['tid']){
+          dump($node->field_measurement_quality[$node->language][0]['tid'] . '<br />' . $quality_tax['tid']);
+          if($node->field_value[$node->language][0]['value'] != $field_value || $node->field_measurement_quality[$node->language][0] != $quality_tax){
             $node->language = LANGUAGE_NONE; // Set node language
             $node->field_value[$node->language][0]['value'] = $field_value;
             $node->field_measurement_quality[$node->language][0] = $quality_tax;

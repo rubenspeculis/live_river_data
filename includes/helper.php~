@@ -94,9 +94,8 @@ function getTID($termName, $vocabName) {
   $result = db_query($sql_query, array('vocabName' => $vocabName, 'termName' => $termName));
   $tid = array();
   foreach ($result as $record) {
-    $tid['tid'] = $record->tid;
+    $tid = $record->tid;
   }
-
   return $tid;
 }
 
