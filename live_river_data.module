@@ -208,59 +208,64 @@ function _process_file($sites, $filename){
     foreach($site->trace as $values){
       if($values->q < 150){
         $date = $values->t;
+        $parsable_dates = array('0','6','12','18');
         $timestamp = strtotime($date);
-        // Set node Title
-        $title = date('Y-m-d-H:i',$timestamp) . ' - ' . $siteID . ' - ' . $measurementType;
-        // Measurement Type change Title
-        if($onetofour) {
-          $title .= ' - Rating Tables';
-        } elseif($onetotwo) {
-          $title .= ' - Capacity Tables';
-        }
-        $field_value = $values->v;
+        $zz = getdate($timestamp);
+        if(in_array((string)$zz['hours'], $parsable_dates)){
+          // Set node Title
+          $title = date('Y-m-d-H:i',$timestamp) . ' - ' . $siteID . ' - ' . $measurementType;
 
-        // Quality TAX
-        $quality = $values->q;
-        if($quality != $quality_check) {
-          $quality_check = $quality;
-
-          $quality_codes = (array)$site->quality_codes;
-          $new_qcodes = array();
-
-          foreach($quality_codes as $key => $value){
-            $new_qcodes["q".$key] = $value;
+          // Measurement Type change Title
+          if($onetofour) {
+            $title .= ' - Rating Tables';
+          } elseif($onetotwo) {
+            $title .= ' - Capacity Tables';
           }
-          $quality_code = $new_qcodes['q'.$quality];
-          $quality_tax = live_river_data_taxonomy_creator($quality_code, 'measurement_quality');
-        }
+          $field_value = $values->v;
+  
+          // Quality TAX
+          $quality = $values->q;
+          if($quality != $quality_check) {
+            $quality_check = $quality;
 
-        if(!empty($existing_nodes) && isset($existing_nodes[$title])) {
-          $nid = $existing_nodes[$title];
-          unset($existing_nodes[$title]);
-          $node = node_load($nid);
-          if($node->field_value[$node->language][0]['value'] != $field_value || $node->field_measurement_quality[$node->language][0]['tid'] != $quality_tax['tid']){
+            $quality_codes = (array)$site->quality_codes;
+            $new_qcodes = array();
+
+            foreach($quality_codes as $key => $value){
+              $new_qcodes["q".$key] = $value;
+            }
+            $quality_code = $new_qcodes['q'.$quality];
+            $quality_tax = live_river_data_taxonomy_creator($quality_code, 'measurement_quality');
+          }
+
+          if(!empty($existing_nodes) && isset($existing_nodes[$title])) {
+            $nid = $existing_nodes[$title];
+            unset($existing_nodes[$title]);
+            $node = node_load($nid);
+            if($node->field_value[$node->language][0]['value'] != $field_value || $node->field_measurement_quality[$node->language][0]['tid'] != $quality_tax['tid']){
+              $node->language = LANGUAGE_NONE; // Set node language
+              $node->field_value[$node->language][0]['value'] = $field_value;
+              $node->field_measurement_quality[$node->language][0] = $quality_tax;
+              $node->field_timestamp[$node->language][0]['value'] = $timestamp;
+              if($node == node_submit($node)) {
+                node_save($node);
+              }
+            }
+          } else {
+            $node = new stdClass();  // Create new node object
+            $node->type = 'measurement'; // Declare type
+            node_object_prepare($node); // Set defaults
+            $node->title = $title; // Set node title
             $node->language = LANGUAGE_NONE; // Set node language
+            $node->uid = 1; // Set user to Admiin
+            $node->field_site_id[$node->language][0] = $siteID_tax;
+            $node->field_measurement_type[$node->language][0] = $measurementType_tax;
             $node->field_value[$node->language][0]['value'] = $field_value;
             $node->field_measurement_quality[$node->language][0] = $quality_tax;
             $node->field_timestamp[$node->language][0]['value'] = $timestamp;
             if($node == node_submit($node)) {
-              node_save($node);
+             node_save($node);
             }
-          }
-        } else {
-          $node = new stdClass();  // Create new node object
-          $node->type = 'measurement'; // Declare type
-          node_object_prepare($node); // Set defaults
-          $node->title = $title; // Set node title
-          $node->language = LANGUAGE_NONE; // Set node language
-          $node->uid = 1; // Set user to Admiin
-          $node->field_site_id[$node->language][0] = $siteID_tax;
-          $node->field_measurement_type[$node->language][0] = $measurementType_tax;
-          $node->field_value[$node->language][0]['value'] = $field_value;
-          $node->field_measurement_quality[$node->language][0] = $quality_tax;
-          $node->field_timestamp[$node->language][0]['value'] = $timestamp;
-          if($node == node_submit($node)) {
-            node_save($node);
           }
         }
       }
