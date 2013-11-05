@@ -63,8 +63,6 @@ function processed_directory($directory = 'processed') {
   }
 }
 
-// Function to grab all measurements for site of this particular measurement
-// type
 function loadSiteMeasurementByType($siteTax, $measurementTax) {
 
   $sql_query = 'SELECT  n.nid AS nid,
